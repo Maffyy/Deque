@@ -10,6 +10,13 @@ namespace Deque
     {
         static void Main(string[] args)
         {
+            int[] array = new int[29];
+            array[0]=1;
+            array[1]=2;
+            IList<int> a;
+            List<int> b;
+            Console.WriteLine(array.Count());
+            Console.WriteLine(array.Length);
         }
     }
 }
