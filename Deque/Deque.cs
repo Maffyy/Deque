@@ -79,9 +79,7 @@ namespace Deque {
                         break;
                     }
                 }
-
                 return count - 1;
-                
             }
              internal void Push(T[][] array, T value) {
                 if(IsEmpty(array)) {
@@ -106,7 +104,6 @@ namespace Deque {
                 }
             }
             internal T GetElement(T[][] f, T[][] b, int index) {
-                
                 int temp = index;
                 for(int i = 0; i < (f.Length+b.Length); i++) {
                     if(temp < _blockSize) {
@@ -117,11 +114,11 @@ namespace Deque {
                 int BlockNumber = 0;
                 for(int i = 1; i < (f.Length + b.Length)+1; i++) {
                     if(index <= i*_blockSize) {
-                        BlockNumber = i-1;
+                        BlockNumber = i;
                         break;
                     }
                 }
-                if(BlockNumber < f.Length) {
+                if(BlockNumber <= f.Length && !IsEmpty(f)) {
                     return f[BlockNumber][temp];
                 } else {
                     BlockNumber -= f.Length;
@@ -250,9 +247,9 @@ namespace Deque {
 
         public void PopFront() => method.Pop(Front);
 
-        public void PushBack(T value) => method.Push(Front, value);
+        public void PushBack(T value) => method.Push(Back, value);
 
-        public void PushFront(T value) => method.Push(Back, value);
+        public void PushFront(T value) => method.Push(Front, value);
 
         public bool Remove(T item) {
             throw new NotImplementedException();
