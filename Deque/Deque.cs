@@ -11,37 +11,73 @@ namespace Deque {
         void PushBack(T value);
         void PopFront();
         void PopBack();
-        T Front();
-        T Back();
+        T PeekFront();
+        T PeekBack();
         bool IsEmpty();
         bool IsFull();
-        bool Capacity();
+        int Capacity { get; set; }
     }
 
     class Deque<T> : IDeque<T> {
-        private const int _blockSize = 8;
 
-        private T[][] Map;
+        private const int _blockSize = 4;
+        private T[][] Front;
+        private T[][] Back;
+        private int frontIndex;
+        private int backIndex;
+        private int index;
 
         public Deque() {
-            Map = new T[1][];
-            Map[0] = new T[_blockSize];
+            Front = new T[1][];
+            Front[0] = new T[_blockSize];
+            Back = new T[1][];
+            Back[0] = new T[_blockSize];
         }
 
-        public bool IsEmpty() {
-            for(int i = 0; i < Map.Length; i++) {
-                for(int j = 0; j < Map[i].Length; j++) {
-                    if(!Map[i][j].Equals(default(T))) {
+        private bool IsEmpty(T[][] array) {
+            for(int i = 0; i < array.Length; i++) {
+                for(int j = 0;  j < array[i].Length;  j++) {
+                    if(!array[i][j].Equals(default(T))) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+            
+        }
+        private bool IsFull(T[][] array) {
+            for(int i = 0; i < array.Length; i++) {
+                for(int j = 0; j < array[i].Length; j++) {
+                    if(array[i][j].Equals(default(T))) {
                         return false;
                     }
                 }
             }
             return true;
         }
-        public bool IsFull() {
-            if(Count == ) {
-
+        private int Count(T[][] array) {
+            int c = 0;
+            for(int i = 0; i < array.Length; i++) {
+                for(int j = 0; j < array[i].Length; j++) {
+                    if(array[i][j].Equals(default(T))) {             // if there is a null, we will stop counting
+                        break;
+                    }
+                    c++;
+                }
             }
+            return c;
+        }
+        private int BlockIndex(T[][] array) {
+            int count = Count(array);
+            for(int i = 0; i < array.Length; i++) {
+                if(count > 8) {
+                    count -= _blockSize;
+                } else {
+                    break;
+                }
+            }
+            
+            return count-1;;
         }
 
         public void PopFront() {
@@ -50,17 +86,44 @@ namespace Deque {
         public void PopBack() {
 
         }
-        public void PushFront(T value) {
+        private T[][] ResizeArray(T[][] array) {
+            T[][] temp = array;
+            array = new T[array.Length+1][];
 
+            for(int i = 0; i < temp.Length; i++) {
+                for(int j = 0; j < temp[i].Length; j++) {
+                    array[i][j] = temp[i][j];
+                }
+            }
+            return array;
+        }
+        private void Push(T[][] array,T value) {
+            if(IsEmpty(array)) {
+                array[0][0] = value;
+            } else if(IsFull(array)) {
+                array = ResizeArray(array);
+                array[array.Length - 1][0] = value;
+            } else {
+                int i = BlockIndex(array);
+                array[array.Length - 1][i] = value;
+            }
+        }
+        public void PushFront(T value) {
+            Push(Front,value);
         }
         public void PushBack(T value) {
-
+            Push(Back,value);
         }
-        public T Front() {
-
+        private T Peek(T[][] array) {
+            int i = BlockIndex(array);
+            return array[array.Length-1][i];
         }
-        public T Back() {
 
+        public T PeekFront() {
+            return Peek(Front);
+        }
+        public T PeekBack() {
+            return Peek(Back);
         }
 
         public T this[int index] {
@@ -74,8 +137,14 @@ namespace Deque {
                 this[index] = (T)value;
             }
         }
-        public int Capacity() {
+        public int Capacity {
+            get {
+                
+            }
+            set {
 
+            }
+            
         }
         public int Count {
             get {
@@ -90,28 +159,16 @@ namespace Deque {
         }
 
         public void Clear() {
-            for(int i = 0; i < Map.Length; i++) {
-                for(int j = 0; j < Map[i].Length; j++) {
-                    Map[i][j] = default(T);
-                }
-            }
+            
         }
 
         public bool Contains(T item) {
-            for(int i = 0; i < Map.Length; i++) {
-                for(int j = 0; j < Map[i].Length; j++) {
-                    if(Map[i][j].Equals(item)) {
-                        return true;
-                    }
-                }
-            }
+            
             return false;
         }
 
         public void CopyTo(T[] array, int arrayIndex) {
-            if(Map == null) {
-                throw new ArgumentNullException();
-            }
+          
         }
 
         public IEnumerator<T> GetEnumerator() {
@@ -120,42 +177,22 @@ namespace Deque {
 
         public int IndexOf(T item) {
 
-            for(int i = 0; i < Map.Length; i++) {
-                for(int j = 0; j < Map[i].Length; j++) {
-                    if(Map[i][j].Equals(item)) {
-                        return ((i+1)*_blockSize)-1+j;
-                    }
-                }
-            }
+            
             throw new InvalidOperationException();
         }
 
         public void Insert(int index, T item) {
-            if(index < 0 || index >= _blockSize*Map.Length) {
-                throw new InvalidOperationException();
-            } 
-
-            int BlockIndex = (_blockSize * Map.Length / (index + 1)) - 1;
-            int i = ((index + 1) / (BlockIndex + 1)) - 1;
-            Map[BlockIndex][i]=item;
+            
         }
 
         public bool Remove(T item) {
 
-            for(int i = 0; i < Map.Length; i++) {
-                for(int j = 0; j < Map[i].Length; j++) {
-                    if(Map[i][j].Equals(item)) {
-                        Map[i][j]=default(T);
-                    }
-                }
-            }
+            
             throw new InvalidOperationException();
         }
 
         public void RemoveAt(int index) {
-            int BlockIndex = (_blockSize*Map.Length/(index+1))-1;
-            int i = ((index+1)/(BlockIndex+1))-1;
-            Map[BlockIndex][i]=default(T);
+            
 
         }
 
