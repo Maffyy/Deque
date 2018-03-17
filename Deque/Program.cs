@@ -8,12 +8,11 @@ namespace Deque {
     class Program {
 
         static void Main(string[] args) {
-            Deque<int> deque = new Deque<int>();
-            deque.PushBack(1);
-            deque.PushBack(2);
-            deque.PushBack(1);
-            deque.PushBack(1);
-            Console.WriteLine(deque[1]);
+            int[][] a = new int[2][];
+            a[0] = new int[8];
+            a[1] = new int[4];
+
+            Console.WriteLine(a[0]);
         }
     }
 }
