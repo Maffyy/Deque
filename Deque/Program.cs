@@ -11,8 +11,8 @@ namespace Deque {
             int[][] a = new int[2][];
             a[0] = new int[8];
             a[1] = new int[4];
-
             Console.WriteLine(a[0]);
+            List<int> b;
         }
     }
 }
