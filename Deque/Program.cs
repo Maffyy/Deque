@@ -22,6 +22,7 @@ namespace Deque {
             deque.PushFront(-1);
             deque.PopFront();
             deque.PopFront();
+            deque.PopFront();
             deque.PushFront(-1);
             deque.PopFront();
             deque.PopFront();

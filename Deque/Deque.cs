@@ -14,11 +14,7 @@ namespace Deque {
         void PopBack();
 
     }
-
-
-    class Method {
-
-    }
+    
 
     class Deque<T> : IDeque<T> {
 
@@ -160,30 +156,29 @@ namespace Deque {
                 for (int i = 0; i < temp.Length; i++) {
                     Map[Map.Length/2 +i].CopyTo(temp[i],0);
                 }
-                frontBlock = Map.Length / 2;
+                
                 Map = temp;
-            
+                frontBlock = Map.Length / 2 -1;
         }
 
         public void PopFront() {
             if(Count == 0) {
                 throw new InvalidOperationException();
             }
-            else if(front + 2 >= _blockSize) {
-                this[0] = default(T);
+            else if(front+1 >= _blockSize) {
                 Count--;
                 front = 0;
                 frontBlock++;
-                if (Map.Length / frontBlock == 2) {
+                if ((Map.Length) / frontBlock == 2) {
                     ResizePopFront();     
                 }
                
             }
             else {
+                
+                this[0] = default(T);
                 Count--;
                 front++;
-                this[0] = default(T);
-                
             }
 
         }
@@ -226,6 +221,7 @@ namespace Deque {
                 //front--;
                 Map[frontBlock][front] = value;
             }
+
             front--;
             Count++;
         }
