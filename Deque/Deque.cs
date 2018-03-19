@@ -14,35 +14,7 @@ namespace Deque {
         void PopBack();
 
     }
-    class Block<T> {
-        private T[] block;
-        public int Length => 8;
-        public Block() {
-            block = new T[Length];
-        }
-
-        public T this[int index] {
-            get {
-                return block[index];
-            }
-            set {
-                block[index] = value;
-            }
-        }
-        public bool Exists(T item) {
-            return Array.Exists(block, x => x.Equals(item));
-        }
-
-        public T Find(T item) {
-            return Array.Find(block, x => x.Equals(item));
-        }
-
-        public void Copy() {
-
-        }
-        public int Count => block.Count();
-
-    }
+    
 
     class Method {
 
@@ -50,14 +22,14 @@ namespace Deque {
 
     class Deque<T> : IDeque<T> {
 
-        private Block<T>[] Map;
+        private T[][] Map;
         private int frontCount;
         private int backCount;
         //private int frontBlockCount;
         //private int backBlockCount;
         public int Count { get; private set; }
         public bool IsReadOnly => false;
-        private int _blockSize { get; set; }
+        private int _blockSize = 8;
         private int midIndex => _blockSize*Map.Length / 2 - 1;
         private int frontIndex => midIndex - frontCount % _blockSize;
         private int frontBlockIndex => (midIndex - frontCount) / _blockSize;
@@ -66,8 +38,8 @@ namespace Deque {
 
 
         public Deque() {
-            Map = new Block<T>[1];
-            Map[0] = new Block<T>();
+            Map = new T[1][];
+            Map[0] = new T[_blockSize];
             Count = frontCount = backCount = 0;
             _blockSize = Map[0].Length;
         }
@@ -75,14 +47,16 @@ namespace Deque {
         public T this[int index]
         {
             get {
-                int block = frontBlockIndex + index / _blockSize;
-                int i = index % _blockSize;
-                return Map[block][i];
+                if (index < 0 || index >= Count) {
+                    throw new IndexOutOfRangeException();
+                }
+                return Map[(frontIndex+ index) / _blockSize + frontBlockIndex][(frontIndex + index) % _blockSize];
             }
             set {
-                int block = frontBlockIndex + index / _blockSize;
-                int i = index % _blockSize;
-                Map[block][i] = value;
+                if (index < 0 || index >= Count) {
+                    throw new IndexOutOfRangeException();
+                }
+                Map[(frontIndex + index) / _blockSize + frontBlockIndex][(frontIndex + index) % _blockSize] = value;
             }
         }
 
@@ -90,7 +64,10 @@ namespace Deque {
             T[] temp = new T[Count];
             CopyTo(temp, 0);
             int num = Map.Length;
-            Map = new Block<T>[num * 2];
+            Map = new T[num * 2][];
+            for (int i = 0; i < Map.Length; i++) {
+                Map[i] = new T[_blockSize];
+            }
             int k = 0;
             for(int i = frontIndex; i < _blockSize; i++) {
                 Map[frontBlockIndex][i] = temp[k];
@@ -119,8 +96,8 @@ namespace Deque {
         }
 
         public bool Contains(T item) {
-            foreach(Block<T> array in Map) {
-                if(array.Exists(item)) {
+            foreach(T[] array in Map) {
+                if(Array.Exists(array, x => x.Equals(item))) {
                     return true;
                 }
             }
@@ -130,9 +107,9 @@ namespace Deque {
         public void CopyTo(T[] array, int arrayIndex) {
             array = new T[Count];
             int i = arrayIndex;
-
-            while(GetEnumerator().MoveNext()) {
-                array[i] = GetEnumerator().Current;
+            IEnumerator enumerator = GetEnumerator();
+            while(enumerator.MoveNext()) {
+                array[i] = (T)enumerator.Current;
                 i++;
             }
         }
@@ -153,9 +130,9 @@ namespace Deque {
 
         public int IndexOf(T item) {
             int i = 0;
-            while(GetEnumerator().MoveNext()) {
-                T current = GetEnumerator().Current;
-                if(current.Equals(item)) {
+            IEnumerator enumerator = GetEnumerator();
+            while(enumerator.MoveNext()) {
+                if(enumerator.Current.Equals(item)) {
                     return i;
                 }
                 i++;
@@ -194,7 +171,7 @@ namespace Deque {
                 if(backBlockIndex == Map.Length - 1) {
                     Resize();
                 }
-                Map[backBlockIndex + 1] = new Block<T>();
+                Map[backBlockIndex + 1] = new T[_blockSize];
                 Map[backBlockIndex + 1][0] = value;
             }
             else {
@@ -213,7 +190,7 @@ namespace Deque {
                 }
                 // allocate a new block and add a new element there.
                 // if the Map is full or not, still in both cases we have to allocate new block of memory
-                Map[frontBlockIndex - 1] = new Block<T>();
+                Map[frontBlockIndex - 1] = new T[_blockSize];
                 Map[frontBlockIndex - 1][_blockSize - 1] = value;
             } // just add new element
             else {
@@ -237,16 +214,11 @@ namespace Deque {
                 backCount--;
                 return true;
             }
-
             
-
-
-
             int index = 0;
             for(int i = frontIndex+1; i < _blockSize; i++) {
                 if (Map[frontBlockIndex][i].Equals(item)) {
                     Map[frontBlockIndex][i] = default(T);
-                    Map[frontBlockIndex]
                     Array.Copy(Map[frontBlockIndex],i-1,Map[frontBlockIndex],i,i-1-frontIndex);
                 }
             }
