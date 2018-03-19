@@ -10,12 +10,24 @@ namespace Deque {
         static void Main(string[] args) {
             
             Deque<int> deque = new Deque<int>();
-            deque.Add(123);
-            deque.Add(2);
-            deque.Add(3);
-            deque.Add(4);
-            deque.Add(5);
-            deque.Add(6);
+            List<int> a = new List<int>();
+            Stack<int> c = new Stack<int>();
+            c.Push(1);
+            //deque.Add(123);
+            //deque.Add(2);
+            deque.PushFront(-1);
+            deque.PushFront(-1);
+            deque.PushFront(-1);
+            deque.PushFront(-1);
+            deque.PushFront(-1);
+            deque.PopFront();
+            deque.PopFront();
+            deque.PushFront(-1);
+            deque.PopFront();
+            deque.PopFront();
+            foreach (int i in deque) {
+                Console.WriteLine(i);
+            }
             
         }
     }
