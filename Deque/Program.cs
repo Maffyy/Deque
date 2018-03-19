@@ -16,12 +16,7 @@ namespace Deque {
             deque.Add(4);
             deque.Add(5);
             deque.Add(6);
-            int[] a = new int[6];
-            deque.CopyTo(a,0);
-            //  Console.WriteLine(deque[2]);
-            //foreach (var i in deque) {
-            //    Console.WriteLine(i);
-            //}
+            
         }
     }
 }
