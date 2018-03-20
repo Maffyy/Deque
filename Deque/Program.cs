@@ -15,7 +15,6 @@ namespace Deque {
             c.Push(1);
             //deque.Add(123);
             //deque.Add(2);
-            deque.PushFront(-1);
             deque.PushBack(1);
             deque.PushFront(-1);
             deque.PushBack(1);
@@ -23,6 +22,10 @@ namespace Deque {
             deque.PushBack(1);
             deque.PushFront(-1);
             deque.PushBack(1);
+            deque.PopBack();
+            deque.PopBack();
+            deque.PopBack();
+            deque.PopBack();
             deque.PushFront(-1);
             deque.PushBack(1);
             deque.PushBack(1);

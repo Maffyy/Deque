@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -21,11 +22,26 @@ namespace Deque {
         private T[][] Map;
         public int Count { get; private set; }
         public bool IsReadOnly => false;
-        private const int _blockSize = 4;
+        private int _blockSize = 4;
+
+        private int mid => ((Map.Length * _blockSize) / 2) % _blockSize;
         private int front;
-        private int frontBlock;
         private int back;
-        private int backBlock => frontBlock + (front + Count - 1) / _blockSize;
+
+        private int frontIndex {
+            get {
+                int temp = mid - front;
+                if(temp < 0) {
+                    return _blockSize - front;
+                }
+                return temp;
+            }
+        }
+        private int backIndex => (mid + back) % _blockSize;
+        private int midBlock => Map.Length / 2;
+
+        private int frontBlock => (midBlock * _blockSize + mid - front) / _blockSize;
+        private int backBlock => frontBlock + (frontIndex + Count - 1) / _blockSize;
 
         public Deque() {
             Init();
@@ -34,8 +50,7 @@ namespace Deque {
         private void Init() {
             Map = new T[1][];
             Map[0] = new T[_blockSize];
-            Count = frontBlock = 0;
-            front = back = _blockSize / 2;
+            Count = front = back = 0;
         }
 
         public T this[int index] {
@@ -43,13 +58,13 @@ namespace Deque {
                 if(index < 0 || index >= Count) {
                     throw new IndexOutOfRangeException();
                 }
-                return Map[(front + index) / _blockSize + frontBlock][(front + index) % _blockSize];
+                return Map[(frontIndex + index) / _blockSize + frontBlock][(frontIndex + index) % _blockSize];
             }
             set {
                 if(index < 0 || index >= Count) {
                     throw new IndexOutOfRangeException();
                 }
-                Map[(front + index) / _blockSize + frontBlock][(front + index) % _blockSize] = value;
+                Map[(frontIndex + index) / _blockSize + frontBlock][(frontIndex + index) % _blockSize] = value;
             }
         }
 
@@ -80,24 +95,24 @@ namespace Deque {
         }
 
         public IEnumerator<T> GetEnumerator() {
-            for(int i = front; i < _blockSize; i++) {
+            for(int i = frontIndex; i < _blockSize; i++) {
                 yield return Map[frontBlock][i];
             }
-            for(int i = frontBlock + 1; i < backBlock; i++) {
-                for(int j = 0; j < Map[i].Count(); j++) {
+
+            for(int i = 0; i < backBlock; i++) {
+                for(int j = 0; j < _blockSize; j++) {
                     yield return Map[i][j];
                 }
             }
-            for(int i = 0; i < back + 1; i++) {
-                yield return Map[backBlock][i];
+
+            for(int i = 0; i <= backIndex; i++) {
+                yield return Map[backIndex][i];
             }
         }
 
         public int IndexOf(T item) {
-            IEnumerator enumerator = GetEnumerator();
-            int i = 0;
-            while(enumerator.MoveNext()) {
-                if(enumerator.Current.Equals(item)) {
+            for (int i = 0; i < Count; i++) {
+                if (this[i].Equals(item)) {
                     return i;
                 }
             }
@@ -105,140 +120,158 @@ namespace Deque {
         }
 
         public void Insert(int index, T item) {
-            throw new NotImplementedException();
+            if (index < 0 || index > Count) {
+                throw new ArgumentOutOfRangeException();
+            }
+            if (index > Count / 2) {
+                if(backIndex == _blockSize - 1 && backBlock == Map.Length - 1) {
+                    ResizePush();
+                }
+                for (int i = Count-1; i > index; i--) {
+                    this[i] = this[i - 1];
+                }
+                back++;
+                Count++;
+                this[index] = item;
+                
+            }
+            else {
+                if(frontIndex == 0 && frontBlock == 0) {
+                    ResizePush();
+                }
+
+                for (int i = 0; i < index; i++) {
+                    this[i] = this[i + 1];
+                }
+                front++;
+                Count++;
+                this[index] = item;
+            }
         }
 
-        private void ResizePopBack() {
-            T[][] temp = new T[Map.Length / 2][];
-            for(int i = 0; i < temp.Length; i++) {
-                temp[i] = new T[_blockSize];
+        private void ResizePop() {
+            T[] temp = new T[Count];
+            int _size = Map.Length / 2;
+            Map = new T[_size][];
+            for (int i = 0; i < _size; i++) {
+                Map[i] = new T[_blockSize]; 
             }
-            for(int i = 0; i < temp.Length; i++) {
-                Map[frontBlock + i].CopyTo(temp[i], 0);
+            for (int i = 0; i < temp.Length; i++) {
+                this[i] = temp[i];
             }
-            Map = temp;
         }
 
         public void PopBack() {
             if(Count == 0) {
-                throw new InvalidOperationException();
+                return;
             }
-            else if(back - 1 < 0) {
-                this[Count - 1] = default(T);
-                Count--;
-                if(Map.Length / (backBlock + 1) == 2) {
-                    ResizePopBack();
-                }
+            this[Count - 1] = default(T);
+            if(Count != 1) {
+                back--;
             }
-            else {
-
-                Count--;
+            Count--;
+            if((frontIndex + Count) / _blockSize + frontBlock < Map.Length / 2) {
+                ResizePop();
             }
-
-
         }
-
-        private void ResizePopFront() {
-            T[][] temp = new T[Map.Length / 2][];
-            for(int i = 0; i < temp.Length; i++) {
-                temp[i] = new T[_blockSize];
-            }
-            for(int i = 0; i < temp.Length; i++) {
-                Map[Map.Length / 2 + i].CopyTo(temp[i], 0);
-            }
-
-            Map = temp;
-            frontBlock = Map.Length / 2 - 1;
-        }
-
         public void PopFront() {
             if(Count == 0) {
-                throw new InvalidOperationException();
+                return;
             }
-            else if(front + 1 >= _blockSize) {
-                Count--;
-                front = 0;
-                frontBlock++;
-                if((Map.Length) / frontBlock == 2) {
-                    ResizePopFront();
-                }
-
+            this[0] = default(T);
+            if(Count != 1) {
+                front--;
             }
-            else {
-
-                this[0] = default(T);
-                Count--;
-                front++;
+            Count--;
+            if(frontBlock > Map.Length / 2) {
+                ResizePop();
             }
-
         }
-        private enum Side { Front, Back }
 
-        private void Resize(Side Side) {
-            T[][] temp = new T[Map.Length * 2][];
-            for(int i = 0; i < temp.Length; i++) {
-                temp[i] = new T[_blockSize];
+        private void ResizePush() {
+            T[] temp = new T[Count];
+            for(int i = 0; i < Count; i++) {
+                temp[i] = this[i];
             }
-            frontBlock = Map.Length - 1;
-            if(Side == Side.Back) {
-                Map.CopyTo(temp, Map.Length - 1);
+            int _size = Map.Length * 2;
+            Map = new T[_size][];
+            for(int i = 0; i < Map.Length; i++) {
+                Map[i] = new T[_blockSize];
             }
-            else if(Side == Side.Front) {
-                Map.CopyTo(temp, Map.Length);
+            for(int i = 0; i < Count; i++) {
+                this[i] = temp[i];
             }
-            Map = temp;
+
         }
 
 
         public void PushBack(T value) {
-            back = (front + Count) % _blockSize;
+            if(backIndex == _blockSize - 1 && backBlock == Map.Length - 1) {
+                ResizePush();
+            }
             if(Count == 0) {
-                Map[0][back] = value;
-                front--;
+                Map[backBlock][backIndex] = value;
+                Count++;
+                return;
             }
-            else if((front + Count) % _blockSize == 0) {
-                if(backBlock == Map.Length - 1) {
-                    Resize(Side.Back);
-                }
-                Map[backBlock + 1][back] = value;
-            }
-            else {
-                Map[backBlock][back] = value;
-                
-            }
-            
             Count++;
+            back++;
+            Map[backBlock][backIndex] = value;
+
+
         }
         public void PushFront(T value) {
+            if(frontIndex == 0 && frontBlock == 0) {
+                ResizePush();
+            }
             if(Count == 0) {
-                Map[0][front] = value;
+                Map[frontBlock][frontIndex] = value;
+                Count++;
+                return;
             }
-            else if(front == 0) {
-                if(frontBlock == 0) {
-                    Resize(Side.Front);
-                }
-                else {
-                    frontBlock--;
-                }
-
-                front = _blockSize - 1;
-                Map[frontBlock][front] = value;
-            }
-            else {
-                //  Count++;
-                front--;
-
-                Map[frontBlock][front] = value;
-            }
+            front++;
             Count++;
+
+            Map[frontBlock][frontIndex] = value;
         }
 
         public bool Remove(T item) {
-            throw new NotImplementedException();
+            int index = IndexOf(item);
+            if(index == -1)
+                return false;
+            RemoveAt(index);
+            return true;
         }
 
         public void RemoveAt(int index) {
-            throw new NotImplementedException();
+
+            if (index < 0 || index >= Count) {
+                throw new ArgumentOutOfRangeException();
+            }
+            if (index > Count/2) {
+                for (int i = index; i < Count-1; i++) {
+                    this[i] = this[i + 1];
+                }
+                if(Count != 1) {
+                    back--;
+                }
+                Count--;
+                if((frontIndex + Count) / _blockSize + frontBlock < Map.Length / 2) {
+                    ResizePop();
+                }
+            }
+            else {
+                for (int i = index; i > 0; i--) {
+                    this[i] = this[i - 1];
+                }
+                if(Count != 1) {
+                    front--;
+                }
+                Count--;
+                if(frontBlock > Map.Length / 2) {
+                    ResizePop();
+                }
+            }
         }
 
         IEnumerator IEnumerable.GetEnumerator() {
