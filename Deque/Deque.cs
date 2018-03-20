@@ -10,90 +10,50 @@ namespace Deque {
     interface IDeque<T> : IList<T> {
         void PushFront(T value);
         void PushBack(T value);
-        T PopFront();
-        T PopBack();
+        void PopFront();
+        void PopBack();
 
     }
-    public class Deque<T> : IDeque<T> {
+
+
+    class Deque<T> : IDeque<T> {
 
         private T[][] Map;
-        private const int _blockSize = 8;
-        private int front;
-        private int frontBlock;
-        public long Extent { get; private set; }
         public int Count { get; private set; }
         public bool IsReadOnly => false;
-
-        public T this[int index] {
-            get {
-                if(index < 0 || index >= Count)
-                    throw new IndexOutOfRangeException();
-                return Map[(index + front) / _blockSize + frontBlock][(index + front) % _blockSize];
-            }
-            set {
-                if(index < 0 || index >= Count)
-                    throw new IndexOutOfRangeException();
-                Map[(index + front) / _blockSize + frontBlock][(index + front) % _blockSize] = value;
-                Extent++;
-            }
-        }
+        private const int _blockSize = 4;
+        private int front;
+        private int frontBlock;
+        private int back;
+        private int backBlock => frontBlock + (front + Count - 1) / _blockSize;
 
         public Deque() {
             Init();
         }
 
-        public Deque(T[] array) {
-            Init();
-            foreach (T i in array) {
-                PushBack(i);
-            }
-        }
         private void Init() {
             Map = new T[1][];
             Map[0] = new T[_blockSize];
-            frontBlock = front = Count = 0;
-            Extent++;
+            Count = frontBlock = 0;
+            front = back = _blockSize / 2;
         }
 
-        private void ResizePushBack() {
-            if(((Count + front) / _blockSize) + frontBlock >= Map.Length) {
-                T[][] temp = new T[Map.Length * 2][];
-                for(int i = 0; i < temp.Length; i++)
-                    temp[i] = new T[_blockSize];
-                Map.CopyTo(temp, 0);
-                Map = temp;
+        public T this[int index] {
+            get {
+                if(index < 0 || index >= Count) {
+                    throw new IndexOutOfRangeException();
+                }
+                return Map[(front + index) / _blockSize + frontBlock][(front + index) % _blockSize];
+            }
+            set {
+                if(index < 0 || index >= Count) {
+                    throw new IndexOutOfRangeException();
+                }
+                Map[(front + index) / _blockSize + frontBlock][(front + index) % _blockSize] = value;
             }
         }
 
-        void ResizePushFront() {
-            if(frontBlock < 0) {
-                frontBlock += Map.Length;
-                T[][] temp = new T[Map.Length * 2][];
-                for(int i = 0; i < temp.Length; i++)
-                    temp[i] = new T[_blockSize];
-                Map.CopyTo(temp, Map.Length);
-                Map = temp;
-            }
-        }
-        void checkSizePopBack() {
-            if((front + Count) / _blockSize + frontBlock < Map.Length / 2) {
-                T[][] temp = new T[Map.Length / 2][];
-                for(int i = 0; i < temp.Length; i++)
-                    temp[i] = Map[i];
-                Map = temp;
-            }
-        }
-        void ResizePopFront() {
-            if(frontBlock > Map.Length / 2) {
-                frontBlock -= Map.Length / 2;
-                T[][] temp = new T[Map.Length / 2][];
-                for(int i = 0; i < temp.Length; i++)
-                    temp[i] = new T[_blockSize];
-                for(int i = 0; i < temp.Length; i++)
-                    Map[Map.Length / 2 + i].CopyTo(temp[i], 0);
-                Map = temp;
-            }
-        }
+
 
         public void Add(T item) {
             PushBack(item);
@@ -109,23 +69,35 @@ namespace Deque {
                     return true;
                 }
             }
-
             return false;
+
         }
 
         public void CopyTo(T[] array, int arrayIndex) {
             for(int i = 0; i < Count; i++) {
-                array[arrayIndex + i] = this[i];
+                array[i + arrayIndex] = this[i];
             }
         }
 
         public IEnumerator<T> GetEnumerator() {
-            return new Enumerator(this);
+            for(int i = front; i < _blockSize; i++) {
+                yield return Map[frontBlock][i];
+            }
+            for(int i = frontBlock + 1; i < backBlock; i++) {
+                for(int j = 0; j < Map[i].Count(); j++) {
+                    yield return Map[i][j];
+                }
+            }
+            for(int i = 0; i < back + 1; i++) {
+                yield return Map[backBlock][i];
+            }
         }
 
         public int IndexOf(T item) {
-            for(int i = 0; i < Count; i++) {
-                if(Equals(item, this[i])) {
+            IEnumerator enumerator = GetEnumerator();
+            int i = 0;
+            while(enumerator.MoveNext()) {
+                if(enumerator.Current.Equals(item)) {
                     return i;
                 }
             }
@@ -133,233 +105,149 @@ namespace Deque {
         }
 
         public void Insert(int index, T item) {
-            if(index < 0 || index > Count)
-                throw new ArgumentOutOfRangeException();
-            Count++;
-            if(index > Count / 2) {
-                ResizePushBack();
-                for(int i = Count - 1; i > index; i--)
-                    this[i] = this[i - 1];
-                this[index] = item;
+            throw new NotImplementedException();
+        }
+
+        private void ResizePopBack() {
+            T[][] temp = new T[Map.Length / 2][];
+            for(int i = 0; i < temp.Length; i++) {
+                temp[i] = new T[_blockSize];
+            }
+            for(int i = 0; i < temp.Length; i++) {
+                Map[frontBlock + i].CopyTo(temp[i], 0);
+            }
+            Map = temp;
+        }
+
+        public void PopBack() {
+            if(Count == 0) {
+                throw new InvalidOperationException();
+            }
+            else if(back - 1 < 0) {
+                this[Count - 1] = default(T);
+                Count--;
+                if(Map.Length / (backBlock + 1) == 2) {
+                    ResizePopBack();
+                }
             }
             else {
-                if(front == 0) {
-                    front = _blockSize - 1;
-                    frontBlock--;
-                }
-                else
-                    front--;
-                ResizePushFront();
-                for(int i = 0; i < index; i++)
-                    this[i] = this[i + 1];
-                this[index] = item;
+
+                Count--;
             }
-            Extent++;
+
+
         }
 
-        public T PopBack() {
-            Extent++;
-            T item = this[Count - 1];
-            Count--;
-            checkSizePopBack();
-            return item;
+        private void ResizePopFront() {
+            T[][] temp = new T[Map.Length / 2][];
+            for(int i = 0; i < temp.Length; i++) {
+                temp[i] = new T[_blockSize];
+            }
+            for(int i = 0; i < temp.Length; i++) {
+                Map[Map.Length / 2 + i].CopyTo(temp[i], 0);
+            }
+
+            Map = temp;
+            frontBlock = Map.Length / 2 - 1;
         }
 
-        public T PopFront() {
-            Extent++;
-            T item = this[0];
-            Count--;
-            if(front == _blockSize - 1) {
+        public void PopFront() {
+            if(Count == 0) {
+                throw new InvalidOperationException();
+            }
+            else if(front + 1 >= _blockSize) {
+                Count--;
                 front = 0;
                 frontBlock++;
+                if((Map.Length) / frontBlock == 2) {
+                    ResizePopFront();
+                }
+
             }
-            else
+            else {
+
+                this[0] = default(T);
+                Count--;
                 front++;
-            ResizePopFront();
-            return item;
+            }
+
         }
+        private enum Side { Front, Back }
+
+        private void Resize(Side Side) {
+            T[][] temp = new T[Map.Length * 2][];
+            for(int i = 0; i < temp.Length; i++) {
+                temp[i] = new T[_blockSize];
+            }
+            frontBlock = Map.Length - 1;
+            if(Side == Side.Back) {
+                Map.CopyTo(temp, Map.Length - 1);
+            }
+            else if(Side == Side.Front) {
+                Map.CopyTo(temp, Map.Length);
+            }
+            Map = temp;
+        }
+
 
         public void PushBack(T value) {
-            Extent++;
-            Count++;
-            ResizePushBack();
-            this[Count - 1] = value;
-        }
-
-        public void PushFront(T value) {
-            Extent++;
-            Count++;
-            if(front == 0) {
-                front = _blockSize - 1;
-                frontBlock--;
-            }
-            else
+            back = (front + Count) % _blockSize;
+            if(Count == 0) {
+                Map[0][back] = value;
                 front--;
-            ResizePushFront();
-            this[0] = value;
+            }
+            else if((front + Count) % _blockSize == 0) {
+                if(backBlock == Map.Length - 1) {
+                    Resize(Side.Back);
+                }
+                Map[backBlock + 1][back] = value;
+            }
+            else {
+                Map[backBlock][back] = value;
+                
+            }
+            
+            Count++;
+        }
+        public void PushFront(T value) {
+            if(Count == 0) {
+                Map[0][front] = value;
+            }
+            else if(front == 0) {
+                if(frontBlock == 0) {
+                    Resize(Side.Front);
+                }
+                else {
+                    frontBlock--;
+                }
+
+                front = _blockSize - 1;
+                Map[frontBlock][front] = value;
+            }
+            else {
+                //  Count++;
+                front--;
+
+                Map[frontBlock][front] = value;
+            }
+            Count++;
         }
 
         public bool Remove(T item) {
-            int index = IndexOf(item);
-            if(index == -1)
-                return false;
-            RemoveAt(index);
-            return true;
+            throw new NotImplementedException();
         }
 
         public void RemoveAt(int index) {
-            Extent++;
-            if(index < 0 || index >= Count)
-                throw new ArgumentOutOfRangeException();
-            if(index > Count / 2) {
-                for(int i = index; i < Count - 1; i++)
-                    this[i] = this[i + 1];
-                Count--;
-                checkSizePopBack();
-            }
-            else {
-                for(int i = index; i > 0; i--)
-                    this[i] = this[i - 1];
-                Count--;
-                if(front == _blockSize - 1) {
-                    front = 0;
-                    frontBlock++;
-                }
-                else
-                    front++;
-                ResizePopFront();
-            }
+            throw new NotImplementedException();
         }
 
         IEnumerator IEnumerable.GetEnumerator() {
             return GetEnumerator();
         }
-        public class Enumerator : IEnumerator<T> {
-            Deque<T> deque;
-            int index = -1;
-            long extent;
-            public Enumerator(Deque<T> deque) {
-                this.deque = deque;
-                extent = deque.Extent;
-            }
-
-            public T Current {
-                get {
-                    if(extent != deque.Extent)
-                        throw new InvalidOperationException();
-                    return deque[index];
-                }
-
-            }
-
-            object IEnumerator.Current => Current;
-
-            public void Dispose() { }
-
-            public bool MoveNext() {
-                if(++index >= deque.Count)
-                    return false;
-                return true;
-            }
-
-            public void Reset() {
-                index = -1;
-            }
-        }
-    }
-
-    public class Reverse<T> : IDeque<T> {
-        private Deque<T> deque;
-
-        public Reverse(Deque<T> deque) {
-            this.deque = deque;
-        }
-
-        public T this[int index] {
-            get { return deque[deque.Count - 1 - index]; }
-            set { deque[deque.Count - 1 - index] = value; }
-        }
-
-        public int Count => deque.Count;
-
-        public bool IsReadOnly => false;
-
-        public void Add(T item) => deque.PushBack(item);
-
-        public void Clear() => deque.Clear();
-
-        public bool Contains(T item) => deque.Contains(item);
-
-        public void CopyTo(T[] array, int arrayIndex) {
-            for(int i = 0; i < deque.Count; i++) {
-                array[arrayIndex + i] = this[deque.Count - 1 - i];
-            }
-        }
-
-        public IEnumerator<T> GetEnumerator() => new Enumerator(deque);
-
-        public int IndexOf(T item) {
-            for(int i = 0; i < deque.Count; i++) {
-                if(Equals(item, this[i])) {
-                    return i;
-                }
-            }
-
-            return -1;
-        }
-
-        public void Insert(int index, T item) {
-            deque.Insert(deque.Count - index, item);
-        }
-
-        public T PopBack() => deque.PopBack();
-
-        public T PopFront() => deque.PopFront();
-
-        public void PushBack(T value) => deque.PushBack(value);
-
-        public void PushFront(T value) => deque.PushFront(value);
-
-        public bool Remove(T item) => deque.Remove(item);
-
-        public void RemoveAt(int index) => deque.RemoveAt(deque.Count - 1 - index);
-
-        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-
-        public class Enumerator : IEnumerator<T> {
-            Deque<T> deque;
-            int index = -1;
-            long extent;
-            public Enumerator(Deque<T> deque) {
-                this.deque = deque;
-                extent = deque.Extent;
-            }
-            public T Current {
-                get {
-                    if(deque.Extent != extent)
-                        throw new InvalidOperationException();
-                    return deque[deque.Count - 1 - index];
-                }
-            }
-
-            object IEnumerator.Current => Current;
-
-            public void Dispose() { }
-
-            public bool MoveNext() {
-                if(++index >= deque.Count)
-                    return false;
-                return true;
-            }
-
-            public void Reset() {
-                index = -1;
-            }
-        }
     }
     public static class DequeTest {
-        public static IList<T> GetReverseView<T>(Deque<T> d) {
-            return new Reverse<T>(d);
-        }
+        //public static IList<T> GetReverseView<T>(Deque<T> d) {
+        //    return null;
+        //}
     }
 }

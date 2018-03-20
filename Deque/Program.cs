@@ -16,19 +16,19 @@ namespace Deque {
             //deque.Add(123);
             //deque.Add(2);
             deque.PushFront(-1);
+            deque.PushBack(1);
             deque.PushFront(-1);
+            deque.PushBack(1);
             deque.PushFront(-1);
+            deque.PushBack(1);
             deque.PushFront(-1);
+            deque.PushBack(1);
             deque.PushFront(-1);
-            deque.PopFront();
-            deque.PopFront();
-            deque.PopFront();
-            deque.PushFront(-1);
-            deque.PopFront();
-            deque.PopFront();
-            foreach (int i in deque) {
-                Console.WriteLine(i);
-            }
+            deque.PushBack(1);
+            deque.PushBack(1);
+            deque.PushBack(1);
+            deque.PushBack(1);
+            
             
         }
     }
