@@ -14,8 +14,6 @@ namespace Deque {
         T PopBack();
 
     }
-
-
     public class Deque<T> : IDeque<T> {
 
         private T[][] Map;
