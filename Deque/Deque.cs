@@ -11,13 +11,13 @@ namespace Deque {
     interface IDeque<T> : IList<T> {
         void PushFront(T value);
         void PushBack(T value);
-        void PopFront();
-        void PopBack();
+        T PopFront();
+        T PopBack();
 
     }
 
 
-    class Deque<T> : IDeque<T> {
+    public class Deque<T> : IDeque<T> {
 
         private T[][] Map;
         public int Count { get; private set; }
@@ -161,10 +161,10 @@ namespace Deque {
             }
         }
 
-        public void PopBack() {
-            if(Count == 0) {
-                return;
-            }
+        public T PopBack() {
+
+
+            T item = this[Count - 1];
             this[Count - 1] = default(T);
             if(Count != 1) {
                 back--;
@@ -173,11 +173,11 @@ namespace Deque {
             if((frontIndex + Count) / _blockSize + frontBlock < Map.Length / 2) {
                 ResizePop();
             }
+            return item;
         }
-        public void PopFront() {
-            if(Count == 0) {
-                return;
-            }
+        public T PopFront() {
+            
+            T item = this[0];
             this[0] = default(T);
             if(Count != 1) {
                 front--;
@@ -186,6 +186,7 @@ namespace Deque {
             if(frontBlock > Map.Length / 2) {
                 ResizePop();
             }
+            return item;
         }
 
         private void ResizePush() {
@@ -278,9 +279,73 @@ namespace Deque {
             return GetEnumerator();
         }
     }
+
+    public class Reverse<T> : IDeque<T> {
+        private Deque<T> deque;
+
+        public Reverse(Deque<T> deque) {
+            this.deque = deque;
+        }
+
+        public T this[int index] {
+            get { return deque[deque.Count - 1 - index]; }
+            set { deque[deque.Count - 1 - index] = value; }
+        }
+
+        public int Count => deque.Count;
+
+        public bool IsReadOnly => false;
+
+        public void Add(T item) => deque.PushBack(item);
+
+        public void Clear() => deque.Clear();
+
+        public bool Contains(T item) => deque.Contains(item);
+
+        public void CopyTo(T[] array, int arrayIndex) {
+            for(int i = 0; i < deque.Count; i++) {
+                array[arrayIndex + i] = this[deque.Count - 1 - i];
+            }
+        }
+
+        public IEnumerator<T> GetEnumerator() {
+            foreach (T item in deque) {
+                yield return item;
+            }
+        }
+
+        public int IndexOf(T item) {
+            for(int i = 0; i < deque.Count; i++) {
+                if(Equals(item, this[i])) {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
+        public void Insert(int index, T item) {
+            deque.Insert(deque.Count - index, item);
+        }
+
+        public T PopBack() => deque.PopBack();
+
+        public T PopFront() => deque.PopFront();
+
+        public void PushBack(T value) => deque.PushBack(value);
+
+        public void PushFront(T value) => deque.PushFront(value);
+
+        public bool Remove(T item) => deque.Remove(item);
+
+        public void RemoveAt(int index) => deque.RemoveAt(deque.Count - 1 - index);
+
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+    }
+
     public static class DequeTest {
-        //public static IList<T> GetReverseView<T>(Deque<T> d) {
-        //    return null;
-        //}
+        public static IList<T> GetReverseView<T>(Deque<T> d) {
+            return new Reverse<T>(d);
+        }
     }
 }
